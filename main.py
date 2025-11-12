@@ -11,3 +11,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+git add README.md
+git commit -m "Initial commit: Added project structure and README"
+git push origin main
