@@ -1,5 +1,5 @@
 # AI_programming_project
-CAT 2 assignment for AI Programming course
+Student Grade Predictor Chatbot - CAT 2 Assignment
 
    ## Student Information
    - **Name:** Drina Musili
