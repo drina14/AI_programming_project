@@ -14,3 +14,7 @@ if __name__ == "__main__":
 git add README.md
 git commit -m "Initial commit: Added project structure and README"
 git push origin main
+
+git add data/ main.py
+git commit -m "Added data loading and preprocessing functions"
+git push origin main
