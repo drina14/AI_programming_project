@@ -18,3 +18,7 @@ git push origin main
 git add data/ main.py
 git commit -m "Added data loading and preprocessing functions"
 git push origin main
+
+git add main.py outputs/
+git commit -m "Completed project with full functionality and outputs"
+git push origin main
