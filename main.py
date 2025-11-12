@@ -1,0 +1,13 @@
+# Student Grade Predictor Chatbot
+# Course: DAI011 - Programming for AI
+# Author: Drina Musili
+# Registration Number: 250636DAI
+
+def main():
+    """Main function to run the chatbot"""
+    print("Welcome to the Student Grade Predictor Chatbot!")
+    print("This program will help you predict your final grade.")
+    print("\nComing soon...")
+
+if __name__ == "__main__":
+    main()
