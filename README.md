@@ -41,5 +41,4 @@ Student Grade Predictor Chatbot - CAT 2 Assignment
   AI_Programming_Project/
 ├── main.py           # Main chatbot program
 ├── README.md         # This file
-├── data/            # Sample data (optional)
-└── outputs/         # Saved predictions
+
