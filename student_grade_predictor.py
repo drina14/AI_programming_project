@@ -7,7 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/10qPmK-N_7CfehlEjKT5Owm0SHMw9Uqrv
 """
 
-!pip install streamlit
 import streamlit as st
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
