@@ -63,18 +63,17 @@ with st.sidebar:
 if "history" not in st.session_state:
     st.session_state.history = []
 
-user_input = st.text_input("Ask me anything on grade prediction:")
-
-if st.button("Go"):
-    pass
-
     for msg in st.session_state.history:
-        st.write(msg)
-
-for msg in st.session_state.history:
-    with st.chat_message(msg["role"]):
+        with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
+user_input = st.chat_input("Ask me anything on grade prediction:")
+ if st.button("Go"):
+    pass
+
+if user_input:
+    st.session_state.history.append({"role": "user", "content": user_input})
+    
 import re
 
 def detect_intent(user_input):
@@ -127,3 +126,5 @@ def generate_response(intent, user_input):
         return "Goodbye! Thanks for chatting. Have a great day!"
     else:
         return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
+st.sesion_state.history.append({"role": "assisatant", "content"": response})
+st.return()
