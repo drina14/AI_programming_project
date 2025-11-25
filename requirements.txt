@@ -1,6 +1,6 @@
 
 streamlit
-streamlit-chat
+streamlit_chat
 pandas
 numpy
 sckikit-learn
