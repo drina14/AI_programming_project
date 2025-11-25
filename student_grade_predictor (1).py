@@ -127,4 +127,4 @@ def generate_response(intent, user_input):
     else:
         return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
 st.sesion_state.history.append({"role": "assisatant", "content": response})
-st.return()
+st.rerurn()
