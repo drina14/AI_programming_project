@@ -1,6 +1,3 @@
 
 streamlit
-streamlit-chat
-pandas
-numpy
-sckikit-learn
+
