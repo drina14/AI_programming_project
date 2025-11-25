@@ -71,7 +71,6 @@ if st.button("Go"):
     for msg in st.session_state.history:
         st.write(msg)
 
-!pip install streamlit_chat
 from streamlit_chat import message
 
 for sender, text in st.session_state.history:
