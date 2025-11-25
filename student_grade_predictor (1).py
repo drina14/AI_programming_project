@@ -71,10 +71,9 @@ if st.button("Go"):
     for msg in st.session_state.history:
         st.write(msg)
 
-from streamlit_chat import message
-
-for sender, text in st.session_state.history:
-    message(text, is_user=(sender=="user"))
+for msg in st.session_state.history:
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
 
 import re
 
