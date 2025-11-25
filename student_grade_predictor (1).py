@@ -65,7 +65,7 @@ if "history" not in st.session_state:
 
     for msg in st.session_state.history:
         with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+          st.write(msg["content"])
 
 user_input = st.chat_input("Ask me anything on grade prediction:")
  if st.button("Go"):
