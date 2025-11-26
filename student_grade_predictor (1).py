@@ -128,16 +128,16 @@ def generate_openai_response(user_input, api_key):
     try:
         client = OpenAI(api_key=api_key)
 
-new_scores = extract_scores_from_text(user_input)
-     if new_scores:
+        new_scores = extract_scores_from_text(user_input)
+        if new_scores:
             st.session_state.scores.update(new_scores)
 
- messages = [
+        messages = [
             {"role": "system", "content": get_student_context()}
         ]
-for msg in st.session_state.history[-5:]:
+        for msg in st.session_state.history[-5:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
-messages.append({"role": "user", "content": user_input})
+        messages.append({"role": "user", "content": user_input})
 
  response = client.chat.completions.create(
             model="gpt-3.5-turbo",
