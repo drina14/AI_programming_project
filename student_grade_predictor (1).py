@@ -9,6 +9,7 @@ Original file is located at
 
 import streamlit as st
 import re
+from openai import OpenAI
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
 st.title("Student Predictor Chatbot")
@@ -16,6 +17,11 @@ st.title("Student Predictor Chatbot")
 with st.sidebar:
     st.title("Student Predictor Chatbot")
     st.write("The Student Grade Predictor Chatbot is an intelligent conversational AI system that helps students predict their final grades and understand their academic performance. The chatbot combines rule-based conversation with grade calculation logic to provide personalized academic insights.")
+
+    st.sidebar.divider()
+    st.sidebar.header("settings")
+    api_key = st.sidebar.text_input("OpenAI API key" , type="password" , help="Enter your OpenAI API key")
+    
     st.sidebar.divider()
     st.sidebar.header("Student Information")
     student_name = st.sidebar.text_input("Student Name")
@@ -64,6 +70,107 @@ for msg in st.session_state.history:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
+def get_student_context():
+    """Build context about the student for the AI"""
+    context = f"""
+You are a helpful Student Grade Predictor chatbot. Here's information about the student:
+- Name: {student_name if student_name else 'Not provided'}
+- Year Level: {year_level}
+- Current GPA: {current_gpa}
+- Study Hours per Week: {study_hours}
+- Attendance Rate: {attendance}%
+- Extracurricular Activities: {', '.join(extracurriculars) if extracurriculars else 'None'}
+- Previous Course Grade: {previous_grade}
+- Confidence Level: {confidence}%
+
+Current subject scores: {st.session_state.scores if st.session_state.scores else 'None provided yet'}
+
+Your role is to:
+1. Help predict grades based on scores and student information
+2. Provide study advice and recommendations
+3. Analyze performance patterns
+4. Be encouraging and supportive
+
+When users provide scores (e.g., "math: 85"), extract and save them. When asked to predict grades, calculate the average and provide a letter grade (A: 90+, B: 80-89, C: 70-79, D: 60-69, F: <60).
+"""
+    return context
+ def extract_scores_from_text(text):
+    """Extract subject scores from user input"""
+    matches = re.findall(r'(\w+):\s*(\d+)', text.lower())
+    scores = {}
+    for subject, score in matches:
+        scores[subject] = int(score)
+    return scores
+
+def calculate_grade(scores_dict):
+    """Calculate average grade from scores"""
+    if not scores_dict:
+        return None
+   total = sum(scores_dict.values())
+    avg = total / len(scores_dict)
+    
+    if avg >= 90:
+        grade = "A"
+    elif avg >= 80:
+        grade = "B"
+    elif avg >= 70:
+        grade = "C"
+    elif avg >= 60:
+        grade = "D"
+    else:
+        grade = "F"
+    
+    return grade, avg
+
+def generate_openai_response(user_input, api_key):
+    """Generate response using OpenAI API"""
+    try:
+        client = OpenAI(api_key=api_key)
+
+new_scores = extract_scores_from_text(user_input)
+        if new_scores:
+            st.session_state.scores.update(new_scores)
+
+ messages = [
+            {"role": "system", "content": get_student_context()}
+        ]
+for msg in st.session_state.history[-5:]:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+messages.append({"role": "user", "content": user_input})
+
+ response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        return f"Error communicating with OpenAI: {str(e)}"
+
+def generate_fallback_response(intent, user_input):
+    """Fallback to rule-based system if no API key"""
+    if intent == "greeting":
+        return "Hello! I'm your Student Grade Predictor chatbot. I can help predict grades based on your scores. Just share them like 'math: 85' or ask for a prediction!"
+    elif intent == "provide_scores":
+        scores = extract_scores_from_text(user_input)
+        st.session_state.scores.update(scores)
+        return f"Thanks! I've noted your scores: {scores}. Say 'predict my grade' to get a prediction."
+    elif intent == "predict":
+        if st.session_state.scores:
+            grade, avg = calculate_grade(st.session_state.scores)
+            return f"Based on your scores (average: {avg:.1f}%), your predicted grade is {grade}. Keep up the great work!"
+        else:
+            return "I don't have any scores yet. Please provide some first, like 'math: 85'."
+    elif intent == "help":
+        return "I'm a chatbot that predicts grades from scores you provide. Examples: 'math: 85 science: 90' then 'predict my grade'."
+    elif intent == "exit":
+        return "Goodbye! Thanks for chatting. Have a great day!"
+    else:
+        return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
+
 def detect_intent(user_input):
     input_lower = user_input.lower()
     if any(word in input_lower for word in ["hello", "hi", "hey"]):
@@ -79,50 +186,23 @@ def detect_intent(user_input):
     else:
         return "fallback"
 
-def generate_response(intent, user_input):
-    if intent == "greeting":
-        return "Hello! I'm your Student Grade Predictor chatbot. I can help predict grades based on your scores. Just share them like 'math: 85' or ask for a prediction!"
-    elif intent == "provide_scores":
-        scores = {}
-        matches = re.findall(r'(\w+):\s*(\d+)', user_input.lower())
-        for subject, score in matches:
-            scores[subject] = int(score)
-        st.session_state.scores.update(scores)
-        return f"Thanks! I've noted your scores: {scores}. Say 'predict my grade' to get a prediction."
-    elif intent == "predict":
-        if st.session_state.scores:
-            total = sum(st.session_state.scores.values())
-            avg = total / len(st.session_state.scores)
-            if avg >= 90:
-                grade = "A"
-            elif avg >= 80:
-                grade = "B"
-            elif avg >= 70:
-                grade = "C"
-            elif avg >= 60:
-                grade = "D"
-            else:
-                grade = "F"
-            return f"Based on your scores (average: {avg:.1f}%), your predicted grade is {grade}. Keep up the great work!"
-        else:
-            return "I don't have any scores yet. Please provide some first, like 'math: 85'."
-    elif intent == "help":
-        return "I'm a simple chatbot that predicts grades from scores you provide. Examples: 'math: 85 science: 90' then 'predict my grade'. Type 'bye' to exit."
-    elif intent == "exit":
-        return "Goodbye! Thanks for chatting. Have a great day!"
-    else:
-        return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
-
 user_input = st.chat_input("Ask me anything on grade prediction:")
-
 if user_input:
+    
     st.session_state.history.append({"role": "user", "content": user_input})
     
     with st.chat_message("user"):
         st.write(user_input)
     
-    intent = detect_intent(user_input)
-    response = generate_response(intent, user_input)
+    if api_key:
+        
+        with st.spinner("Thinking..."):
+            response = generate_openai_response(user_input, api_key)
+    else:
+        
+        st.info("Tip: Add your OpenAI API key in the sidebar for smarter responses!")
+        intent = detect_intent(user_input)
+        response = generate_fallback_response(intent, user_input)
     
     st.session_state.history.append({"role": "assistant", "content": response})
     
@@ -130,3 +210,14 @@ if user_input:
         st.write(response)
     
     st.rerun()
+
+if st.session_state.scores:
+    st.sidebar.divider()
+    st.sidebar.header("📊 Current Scores")
+    for subject, score in st.session_state.scores.items():
+        st.sidebar.write(f"**{subject.capitalize()}**: {score}")
+    
+    grade_info = calculate_grade(st.session_state.scores)
+    if grade_info:
+        grade, avg = grade_info
+        st.sidebar.metric("Predicted Grade", grade, f"Average: {avg:.1f}%")
