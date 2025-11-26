@@ -107,7 +107,7 @@ def calculate_grade(scores_dict):
     """Calculate average grade from scores"""
     if not scores_dict:
         return None
-   total = sum(scores_dict.values())
+    total = sum(scores_dict.values())
     avg = total / len(scores_dict)
     
     if avg >= 90:
