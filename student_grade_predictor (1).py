@@ -94,7 +94,8 @@ Your role is to:
 When users provide scores (e.g., "math: 85"), extract and save them. When asked to predict grades, calculate the average and provide a letter grade (A: 90+, B: 80-89, C: 70-79, D: 60-69, F: <60).
 """
     return context
- def extract_scores_from_text(text):
+    
+def extract_scores_from_text(text):
     """Extract subject scores from user input"""
     matches = re.findall(r'(\w+):\s*(\d+)', text.lower())
     scores = {}
