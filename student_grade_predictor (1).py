@@ -129,7 +129,7 @@ def generate_openai_response(user_input, api_key):
         client = OpenAI(api_key=api_key)
 
 new_scores = extract_scores_from_text(user_input)
-        if new_scores:
+     if new_scores:
             st.session_state.scores.update(new_scores)
 
  messages = [
