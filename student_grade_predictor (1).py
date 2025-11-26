@@ -8,73 +8,61 @@ Original file is located at
 """
 
 import streamlit as st
+import re
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
-st.title(" Student Predictor Chatbot")
-
-
+st.title("Student Predictor Chatbot")
 
 with st.sidebar:
     st.title("Student Predictor Chatbot")
-
     st.write("The Student Grade Predictor Chatbot is an intelligent conversational AI system that helps students predict their final grades and understand their academic performance. The chatbot combines rule-based conversation with grade calculation logic to provide personalized academic insights.")
-
     st.sidebar.divider()
-
     st.sidebar.header("Student Information")
     student_name = st.sidebar.text_input("Student Name")
     year_level = st.sidebar.selectbox(
-    "Year Level",
-    ["First year", "Second year", "Third year", "Fourth year"]
-)
+        "Year Level",
+        ["First year", "Second year", "Third year", "Fourth year"]
+    )
     current_gpa = st.sidebar.number_input("Current GPA", 0.0, 4.0, 3.0)
     st.sidebar.progress(0.75, text="75% towards target grade")
-
+    
     st.sidebar.header("Study Habits")
     study_hours = st.sidebar.number_input(
-    "Study Hours per Week",
-    min_value=0,
-    max_value=168,
-    value=10
-)
-    attendance = st.sidebar.slider(
-    "Attendance Rate (%)",
-    min_value=0,
-    max_value=100,
-    value=80
+        "Study Hours per Week",
+        min_value=0,
+        max_value=168,
+        value=10
     )
-
+    attendance = st.sidebar.slider(
+        "Attendance Rate (%)",
+        min_value=0,
+        max_value=100,
+        value=80
+    )
+    
     st.sidebar.header("Other Factors")
     extracurriculars = st.sidebar.multiselect(
-    "Extracurricular Activities",
-    ["Sports", "Music", "Chess", "Drama", "Volunteer Work" , "Table tennis" , "Christian Union"]
-)
+        "Extracurricular Activities",
+        ["Sports", "Music", "Chess", "Drama", "Volunteer Work", "Table tennis", "Christian Union"]
+    )
     previous_grade = st.sidebar.selectbox(
-    "Previous Course Grade",
-    ["A", "B", "C", "D", "F"]
-)
-
+        "Previous Course Grade",
+        ["A", "B", "C", "D", "F"]
+    )
+    
     st.sidebar.header("Exam Information")
     exam_date = st.sidebar.date_input("Exam Date")
-
-
     confidence = st.slider("Confidence level", 50, 100, 80)
 
 if "history" not in st.session_state:
     st.session_state.history = []
 
-    for msg in st.session_state.history:
-        with st.chat_message(msg["role"]):
-          st.write(msg["content"])
+if "scores" not in st.session_state:
+    st.session_state.scores = {}
 
-user_input = st.chat_input("Ask me anything on grade prediction:")
-if st.button("Go"):
-    pass
-
-if user_input:
-    st.session_state.history.append({"role": "user", "content": user_input})
-    
-import re
+for msg in st.session_state.history:
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
 
 def detect_intent(user_input):
     input_lower = user_input.lower()
@@ -99,12 +87,10 @@ def generate_response(intent, user_input):
         matches = re.findall(r'(\w+):\s*(\d+)', user_input.lower())
         for subject, score in matches:
             scores[subject] = int(score)
-        if 'scores' not in st.session_state:
-            st.session_state.scores = {}
         st.session_state.scores.update(scores)
         return f"Thanks! I've noted your scores: {scores}. Say 'predict my grade' to get a prediction."
     elif intent == "predict":
-        if 'scores' in st.session_state and st.session_state.scores:
+        if st.session_state.scores:
             total = sum(st.session_state.scores.values())
             avg = total / len(st.session_state.scores)
             if avg >= 90:
@@ -126,5 +112,21 @@ def generate_response(intent, user_input):
         return "Goodbye! Thanks for chatting. Have a great day!"
     else:
         return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
-st.sesion_state.history.append({"role": "assistant", "content": response})
-st.rerurn()
+
+user_input = st.chat_input("Ask me anything on grade prediction:")
+
+if user_input:
+    st.session_state.history.append({"role": "user", "content": user_input})
+    
+    with st.chat_message("user"):
+        st.write(user_input)
+    
+    intent = detect_intent(user_input)
+    response = generate_response(intent, user_input)
+    
+    st.session_state.history.append({"role": "assistant", "content": response})
+    
+    with st.chat_message("assistant"):
+        st.write(response)
+    
+    st.rerun()
