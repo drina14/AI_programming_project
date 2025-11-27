@@ -9,6 +9,7 @@ Original file is located at
 
 import streamlit as st
 import re
+pip install openai
 from openai import OpenAI
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
