@@ -9,7 +9,7 @@ Original file is located at
 
 import streamlit as st
 import re
-# Removed all API imports (OpenAI, Groq)
+# No API imports are needed.
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
 st.title("Student Predictor Chatbot")
@@ -19,7 +19,7 @@ with st.sidebar:
     st.write("The Student Grade Predictor Chatbot is an intelligent conversational AI system that helps students predict their final grades and understand their academic performance. The chatbot combines rule-based conversation with grade calculation logic to provide personalized academic insights.")
 
     st.sidebar.divider()
-    # API key input removed
+    # Removed API key input
 
     st.sidebar.header("Student Information")
     student_name = st.sidebar.text_input("Student Name")
@@ -27,6 +27,7 @@ with st.sidebar:
         "Year Level",
         ["First year", "Second year", "Third year", "Fourth year"]
     )
+    # The Current GPA is a separate input and is not used by the chat for score calculation
     current_gpa = st.sidebar.number_input("Current GPA", 0.0, 4.0, 3.0)
     st.sidebar.progress(0.75, text="75% towards target grade")
     
@@ -68,34 +69,13 @@ for msg in st.session_state.history:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-def get_student_context():
-    """Build context about the student (function kept but is not essential for the rule-based system)"""
-    context = f"""
-You are a helpful Student Grade Predictor chatbot. Here's information about the student:
-- Name: {student_name if student_name else 'Not provided'}
-- Year Level: {year_level}
-- Current GPA: {current_gpa}
-- Study Hours per Week: {study_hours}
-- Attendance Rate: {attendance}%
-- Extracurricular Activities: {', '.join(extracurriculars) if extracurriculars else 'None'}
-- Previous Course Grade: {previous_grade}
-- Confidence Level: {confidence}%
-Current subject scores: {st.session_state.scores if st.session_state.scores else 'None provided yet'}
-"""
-    return context
-    
 def extract_scores_from_text(text):
-    """Extract subject scores from user input"""
-    # Look for patterns like 'subject: score' or just 'score'
-    matches = re.findall(r'(\w+):\s*(\d+)', text.lower())
+    """Extract subject scores from user input using the corrected regex"""
+    # Pattern: one or more word characters (subject), followed by optional space(s), a colon, optional space(s), and one or more digits (score)
+    matches = re.findall(r'(\w+)\s*:\s*(\d+)', text.lower())
     scores = {}
     for subject, score in matches:
-        # Added a check to exclude general words like 'math' if the score is already handled
-        if subject.lower() not in ["math", "science", "english", "history"]:
-             # This assigns a score to an unspecified subject if only a number is provided
-             scores[subject] = int(score) 
-        else:
-            scores[subject] = int(score)
+        scores[subject] = int(score)
     return scores
 
 def calculate_grade(scores_dict):
@@ -122,33 +102,37 @@ def generate_fallback_response(intent, user_input):
     """Rule-based system to handle chat responses"""
     if intent == "greeting":
         return "Hello! I'm your Student Grade Predictor chatbot. I can help predict grades based on your scores. Just share them like 'math: 85' or ask for a prediction!"
+    
     elif intent == "provide_scores":
         # Ensure scores are extracted and saved here
         scores = extract_scores_from_text(user_input)
         if scores:
             st.session_state.scores.update(scores)
-            return f"Thanks! I've noted your scores: {scores}. Say 'predict my grade' to get a prediction."
+            # Formatting the output to look clean
+            score_list = ", ".join([f"{k.capitalize()}: {v}" for k, v in scores.items()])
+            return f"Thanks! I've noted your scores: {score_list}. Say 'predict my grade' to get a prediction."
         else:
-            # Should not happen if detect_intent works, but kept as a safeguard
             return "Please provide a subject and score, like 'math: 85'."
+            
     elif intent == "predict":
         if st.session_state.scores:
             grade, avg = calculate_grade(st.session_state.scores)
             return f"Based on your scores (average: {avg:.1f}%), your predicted grade is {grade}. Keep up the great work!"
         else:
             return "I don't have any scores yet. Please provide some first, like 'math: 85'."
+            
     elif intent == "help":
         return "I'm a chatbot that predicts grades from scores you provide. Examples: 'math: 85 science: 90' then 'predict my grade'."
+        
     elif intent == "exit":
         return "Goodbye! Thanks for chatting. Have a great day!"
+        
     else:
-        # Catch-all response
+        # Catch-all response, which was the previous issue
         return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
 
 def detect_intent(user_input):
-    """
-    FIXED: Ensures score patterns are correctly matched to trigger 'provide_scores'
-    """
+    """Rule-based intent detection with the FIX for score input"""
     input_lower = user_input.lower()
     
     if any(word in input_lower for word in ["hello", "hi", "hey"]):
@@ -160,7 +144,7 @@ def detect_intent(user_input):
     elif any(word in input_lower for word in ["bye", "exit", "quit"]):
         return "exit"
     
-    # 🚨 FIX: Match the 'word: number' pattern that the user is using (e.g., 'math: 85')
+    # 🚨 FIX: Check for the exact 'word: number' pattern used by the user (e.g., 'math: 85')
     if re.search(r'\b\w+\s*:\s*\d+', input_lower):
         return "provide_scores"
         
@@ -175,7 +159,7 @@ if user_input:
     with st.chat_message("user"):
         st.write(user_input)
     
-    # SIMPLIFIED LOGIC: Always use the rule-based system
+    # Logic is simplified to always use the rule-based system
     intent = detect_intent(user_input)
     response = generate_fallback_response(intent, user_input)
     
