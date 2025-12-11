@@ -9,7 +9,7 @@ Original file is located at
 
 import streamlit as st
 import re
-# No API imports are needed (OpenAI, Groq).
+# No API imports are needed.
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
 st.title("Student Predictor Chatbot")
@@ -19,7 +19,7 @@ with st.sidebar:
     st.write("The Student Grade Predictor Chatbot is an intelligent conversational AI system that helps students predict their final grades and understand their academic performance. The chatbot combines rule-based conversation with grade calculation logic to provide personalized academic insights.")
 
     st.sidebar.divider()
-    # API key inputs are fully removed.
+    # Sidebar inputs for Student Info, Study Habits, etc., remain the same.
 
     st.sidebar.header("Student Information")
     student_name = st.sidebar.text_input("Student Name")
@@ -70,6 +70,7 @@ for msg in st.session_state.history:
 
 def extract_scores_from_text(text):
     """Extract subject scores from user input using the reliable regex: word: score"""
+    # This regex reliably finds patterns like 'math: 85'
     matches = re.findall(r'(\w+)\s*:\s*(\d+)', text.lower())
     scores = {}
     for subject, score in matches:
@@ -96,39 +97,6 @@ def calculate_grade(scores_dict):
     
     return grade, avg
 
-def generate_fallback_response(intent, user_input):
-    """Rule-based system to handle chat responses"""
-    if intent == "greeting":
-        return "Hello! I'm your Student Grade Predictor chatbot. I can help predict grades based on your scores. Just share them like 'math: 85' or ask for a prediction!"
-    
-    elif intent == "provide_scores":
-        scores = extract_scores_from_text(user_input)
-        
-        # If the intent was detected, scores MUST be extracted and saved here
-        if scores:
-            st.session_state.scores.update(scores)
-            score_list = ", ".join([f"{k.capitalize()}: {v}" for k, v in scores.items()])
-            return f"Thanks! I've noted your scores: {score_list}. Say 'predict my grade' to get a prediction."
-        else:
-            # Fallback for unexpected score input, just in case
-            return "Please provide a subject and score in the format 'Subject: Score', like 'math: 85'."
-            
-    elif intent == "predict":
-        if st.session_state.scores:
-            grade, avg = calculate_grade(st.session_state.scores)
-            return f"Based on your scores (average: {avg:.1f}%), your predicted grade is {grade}. Keep up the great work!"
-        else:
-            return "I don't have any scores yet. Please provide some first, like 'math: 85', and then ask to predict your grade."
-            
-    elif intent == "help":
-        return "I'm a chatbot that predicts grades from scores you provide. Examples: 'math: 85 science: 90' then 'predict my grade'."
-        
-    elif intent == "exit":
-        return "Goodbye! Thanks for chatting. Have a great day!"
-        
-    else:
-        return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
-
 def detect_intent(user_input):
     """
     FIXED: Uses the output of the extraction function to reliably determine score intent.
@@ -152,6 +120,38 @@ def detect_intent(user_input):
         
     # 3. Default fallback
     return "fallback"
+
+def generate_fallback_response(intent, user_input):
+    """Rule-based system to handle chat responses"""
+    if intent == "greeting":
+        return "Hello! I'm your Student Grade Predictor chatbot. I can help predict grades based on your scores. Just share them like 'math: 85' or ask for a prediction!"
+    
+    # NOTE: The 'provide_scores' intent is now handled RELIABLY.
+    elif intent == "provide_scores":
+        scores = extract_scores_from_text(user_input)
+        
+        if scores:
+            st.session_state.scores.update(scores)
+            score_list = ", ".join([f"{k.capitalize()}: {v}" for k, v in scores.items()])
+            return f"Thanks! I've noted your scores: {score_list}. Say 'predict my grade' to get a prediction."
+        else:
+            return "Please provide a subject and score in the format 'Subject: Score', like 'math: 85'."
+            
+    elif intent == "predict":
+        if st.session_state.scores:
+            grade, avg = calculate_grade(st.session_state.scores)
+            return f"Based on your scores (average: {avg:.1f}%), your predicted grade is {grade}. Keep up the great work!"
+        else:
+            return "I don't have any scores yet. Please provide some first, like 'math: 85', and then ask to predict your grade."
+            
+    elif intent == "help":
+        return "I'm a chatbot that predicts grades from scores you provide. Examples: 'math: 85 science: 90' then 'predict my grade'."
+        
+    elif intent == "exit":
+        return "Goodbye! Thanks for chatting. Have a great day!"
+        
+    else:
+        return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
 
 
 user_input = st.chat_input("Ask me anything on grade prediction:")
