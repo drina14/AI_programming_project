@@ -9,8 +9,7 @@ Original file is located at
 
 import streamlit as st
 import re
-# Added: Groq for the new API
-from groq import Groq 
+# The 'openai' and 'groq' imports have been removed.
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
 st.title("Student Predictor Chatbot")
@@ -20,11 +19,8 @@ with st.sidebar:
     st.write("The Student Grade Predictor Chatbot is an intelligent conversational AI system that helps students predict their final grades and understand their academic performance. The chatbot combines rule-based conversation with grade calculation logic to provide personalized academic insights.")
 
     st.sidebar.divider()
-    st.sidebar.header("settings")
-    # UPDATED: Changed the label and help text to reflect the Groq API Key
-    api_key = st.sidebar.text_input("Groq API Key" , type="password" , help="Enter your Groq API key (e.g., gsk_...)")
+    # The API key input has been removed.
     
-    st.sidebar.divider()
     st.sidebar.header("Student Information")
     student_name = st.sidebar.text_input("Student Name")
     year_level = st.sidebar.selectbox(
@@ -73,7 +69,7 @@ for msg in st.session_state.history:
         st.write(msg["content"])
 
 def get_student_context():
-    """Build context about the student for the AI"""
+    """Build context about the student for the AI (kept for completeness, though not strictly needed by the rule-based system)"""
     context = f"""
 You are a helpful Student Grade Predictor chatbot. Here's information about the student:
 - Name: {student_name if student_name else 'Not provided'}
@@ -86,14 +82,6 @@ You are a helpful Student Grade Predictor chatbot. Here's information about the 
 - Confidence Level: {confidence}%
 
 Current subject scores: {st.session_state.scores if st.session_state.scores else 'None provided yet'}
-
-Your role is to:
-1. Help predict grades based on scores and student information
-2. Provide study advice and recommendations
-3. Analyze performance patterns
-4. Be encouraging and supportive
-
-When users provide scores (e.g., "math: 85"), extract and save them. When asked to predict grades, calculate the average and provide a letter grade (A: 90+, B: 80-89, C: 70-79, D: 60-69, F: <60).
 """
     return context
     
@@ -125,44 +113,10 @@ def calculate_grade(scores_dict):
     
     return grade, avg
 
-# UPDATED: Renamed function and changed the API calls to Groq
-def generate_groq_response(user_input, api_key):
-    """Generate response using Groq API"""
-    try:
-        # 1. Initialize the Groq client
-        client = Groq(api_key=api_key)
-
-        # Retain score extraction logic from user input
-        new_scores = extract_scores_from_text(user_input)
-        if new_scores:
-            st.session_state.scores.update(new_scores)
-
-        # Build the messages list (system context and chat history)
-        messages = [
-            {"role": "system", "content": get_student_context()}
-        ]
-        for msg in st.session_state.history[-5:]: # Using the last 5 messages for context
-            messages.append({"role": msg["role"], "content": msg["content"]})
-        messages.append({"role": "user", "content": user_input})
-
-        # 2. Call the Groq chat completions endpoint
-        response = client.chat.completions.create(
-            # Using llama for a fast and capable Groq experience
-            model="mixtral-8x7b", 
-            messages=messages,
-            temperature=0.7,
-            max_tokens=500
-        )
-        
-        # 3. Return the response content
-        return response.choices[0].message.content
-        
-    except Exception as e:
-        # UPDATED: Changed error message to reference Groq
-        return f"Error communicating with Groq API: {str(e)}"
+# The generate_groq_response (or openai_response) function has been removed.
 
 def generate_fallback_response(intent, user_input):
-    """Fallback to rule-based system if no API key"""
+    """Rule-based system to handle chat responses"""
     if intent == "greeting":
         return "Hello! I'm your Student Grade Predictor chatbot. I can help predict grades based on your scores. Just share them like 'math: 85' or ask for a prediction!"
     elif intent == "provide_scores":
@@ -183,6 +137,7 @@ def generate_fallback_response(intent, user_input):
         return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
 
 def detect_intent(user_input):
+    """Rule-based intent detection"""
     input_lower = user_input.lower()
     if any(word in input_lower for word in ["hello", "hi", "hey"]):
         return "greeting"
@@ -192,7 +147,8 @@ def detect_intent(user_input):
         return "help"
     elif any(word in input_lower for word in ["bye", "exit", "quit"]):
         return "exit"
-    elif re.search(r'\b(math|science|english|history):\s*\d+', input_lower):
+    # Added "score" to trigger score extraction more easily
+    elif re.search(r'\b(math|science|english|history|score):\s*\d+', input_lower) or extract_scores_from_text(user_input):
         return "provide_scores"
     else:
         return "fallback"
@@ -205,16 +161,10 @@ if user_input:
     with st.chat_message("user"):
         st.write(user_input)
     
-    if api_key:
-        
-        with st.spinner("Thinking..."):
-            # UPDATED: Calling the new Groq function
-            response = generate_groq_response(user_input, api_key) 
-    else:
-        # UPDATED: Changed info text to reference Groq
-        st.info("Tip: Add your Groq API key in the sidebar for smarter responses!")
-        intent = detect_intent(user_input)
-        response = generate_fallback_response(intent, user_input)
+    # SIMPLIFIED LOGIC: Always use the rule-based system
+    
+    intent = detect_intent(user_input)
+    response = generate_fallback_response(intent, user_input)
     
     st.session_state.history.append({"role": "assistant", "content": response})
     
@@ -233,7 +183,8 @@ if st.session_state.scores:
     if grade_info:
         grade, avg = grade_info
         st.sidebar.metric("Predicted Grade", grade, f"Average: {avg:.1f}%")
-   
+    
+    
     
 
 
