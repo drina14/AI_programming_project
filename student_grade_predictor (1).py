@@ -9,7 +9,8 @@ Original file is located at
 
 import streamlit as st
 import re
-from openai import OpenAI
+# Added: Groq for the new API
+from groq import Groq 
 
 st.set_page_config(page_title="Student Predictor", layout="wide")
 st.title("Student Predictor Chatbot")
@@ -20,7 +21,8 @@ with st.sidebar:
 
     st.sidebar.divider()
     st.sidebar.header("settings")
-    api_key = st.sidebar.text_input("OpenAI API key" , type="password" , help="Enter your OpenAI API key")
+    # UPDATED: Changed the label and help text to reflect the Groq API Key
+    api_key = st.sidebar.text_input("Groq API Key" , type="password" , help="Enter your Groq API key (e.g., gsk_...)")
     
     st.sidebar.divider()
     st.sidebar.header("Student Information")
@@ -123,33 +125,41 @@ def calculate_grade(scores_dict):
     
     return grade, avg
 
-def generate_openai_response(user_input, api_key):
-    """Generate response using OpenAI API"""
+# UPDATED: Renamed function and changed the API calls to Groq
+def generate_groq_response(user_input, api_key):
+    """Generate response using Groq API"""
     try:
-        client = OpenAI(api_key=api_key)
+        # 1. Initialize the Groq client
+        client = Groq(api_key=api_key)
 
+        # Retain score extraction logic from user input
         new_scores = extract_scores_from_text(user_input)
         if new_scores:
             st.session_state.scores.update(new_scores)
 
+        # Build the messages list (system context and chat history)
         messages = [
             {"role": "system", "content": get_student_context()}
         ]
-        for msg in st.session_state.history[-5:]:
+        for msg in st.session_state.history[-5:]: # Using the last 5 messages for context
             messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": user_input})
 
+        # 2. Call the Groq chat completions endpoint
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            # Using llama3-8b-8192 for a fast and capable Groq experience
+            model="llama3-8b-8192", 
             messages=messages,
             temperature=0.7,
             max_tokens=500
         )
         
+        # 3. Return the response content
         return response.choices[0].message.content
         
     except Exception as e:
-        return f"Error communicating with OpenAI: {str(e)}"
+        # UPDATED: Changed error message to reference Groq
+        return f"Error communicating with Groq API: {str(e)}"
 
 def generate_fallback_response(intent, user_input):
     """Fallback to rule-based system if no API key"""
@@ -198,10 +208,11 @@ if user_input:
     if api_key:
         
         with st.spinner("Thinking..."):
-            response = generate_openai_response(user_input, api_key)
+            # UPDATED: Calling the new Groq function
+            response = generate_groq_response(user_input, api_key) 
     else:
-        
-        st.info("Tip: Add your OpenAI API key in the sidebar for smarter responses!")
+        # UPDATED: Changed info text to reference Groq
+        st.info("Tip: Add your Groq API key in the sidebar for smarter responses!")
         intent = detect_intent(user_input)
         response = generate_fallback_response(intent, user_input)
     
@@ -222,3 +233,13 @@ if st.session_state.scores:
     if grade_info:
         grade, avg = grade_info
         st.sidebar.metric("Predicted Grade", grade, f"Average: {avg:.1f}%")
+   
+    
+
+
+
+   
+           
+            
+   
+            
