@@ -148,7 +148,7 @@ def generate_groq_response(user_input, api_key):
         # 2. Call the Groq chat completions endpoint
         response = client.chat.completions.create(
             # Using llama3-8b-8192 for a fast and capable Groq experience
-            model="llama3-70b-8192", 
+            model="mixtral-8x7b-32768", 
             messages=messages,
             temperature=0.7,
             max_tokens=500
