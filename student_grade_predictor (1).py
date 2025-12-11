@@ -7,19 +7,28 @@ Original file is located at
     https://colab.research.google.com/drive/10qPmK-N_7CfehlEjKT5Owm0SHMw9Uqrv
 """
 
+# -*- coding: utf-8 -*-
+
 import streamlit as st
 import re
-# No API imports are needed.
 
+# ---------------------------------------------------
+# PAGE SETUP
+# ---------------------------------------------------
 st.set_page_config(page_title="Student Predictor", layout="wide")
 st.title("Student Predictor Chatbot")
 
+# ---------------------------------------------------
+# SIDEBAR
+# ---------------------------------------------------
 with st.sidebar:
     st.title("Student Predictor Chatbot")
-    st.write("The Student Grade Predictor Chatbot is an intelligent conversational AI system that helps students predict their final grades and understand their academic performance. The chatbot combines rule-based conversation with grade calculation logic to provide personalized academic insights.")
+    st.write(
+        "This chatbot predicts your grade based on your subject scores. "
+        "Provide scores like 'math: 80 english: 90' and ask for 'predict my grade'."
+    )
 
     st.sidebar.divider()
-    # Sidebar inputs for Student Info, Study Habits, etc., remain the same.
 
     st.sidebar.header("Student Information")
     student_name = st.sidebar.text_input("Student Name")
@@ -29,61 +38,57 @@ with st.sidebar:
     )
     current_gpa = st.sidebar.number_input("Current GPA", 0.0, 4.0, 3.0)
     st.sidebar.progress(0.75, text="75% towards target grade")
-    
+
     st.sidebar.header("Study Habits")
-    study_hours = st.sidebar.number_input(
-        "Study Hours per Week",
-        min_value=0,
-        max_value=168,
-        value=10
-    )
-    attendance = st.sidebar.slider(
-        "Attendance Rate (%)",
-        min_value=0,
-        max_value=100,
-        value=80
-    )
-    
+    study_hours = st.sidebar.number_input("Study Hours per Week", 0, 168, 10)
+    attendance = st.sidebar.slider("Attendance Rate (%)", 0, 100, 80)
+
     st.sidebar.header("Other Factors")
     extracurriculars = st.sidebar.multiselect(
         "Extracurricular Activities",
         ["Sports", "Music", "Chess", "Drama", "Volunteer Work", "Table tennis", "Christian Union"]
     )
     previous_grade = st.sidebar.selectbox(
-        "Previous Course Grade",
-        ["A", "B", "C", "D", "F"]
+        "Previous Course Grade", ["A", "B", "C", "D", "F"]
     )
-    
+
     st.sidebar.header("Exam Information")
     exam_date = st.sidebar.date_input("Exam Date")
     confidence = st.slider("Confidence level", 50, 100, 80)
 
+# ---------------------------------------------------
+# SESSION STATE
+# ---------------------------------------------------
 if "history" not in st.session_state:
     st.session_state.history = []
 
 if "scores" not in st.session_state:
     st.session_state.scores = {}
 
+# ---------------------------------------------------
+# CHAT HISTORY DISPLAY
+# ---------------------------------------------------
 for msg in st.session_state.history:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
+# ---------------------------------------------------
+# FUNCTIONS
+# ---------------------------------------------------
+
 def extract_scores_from_text(text):
-    """Extract subject scores from user input using the reliable regex: word: score"""
-    # This regex reliably finds patterns like 'math: 85'
+    """Extract subject scores from user input using pattern: subject: score."""
     matches = re.findall(r'(\w+)\s*:\s*(\d+)', text.lower())
-    scores = {}
-    for subject, score in matches:
-        scores[subject] = int(score)
+    scores = {subject: int(score) for subject, score in matches}
     return scores
 
+
 def calculate_grade(scores_dict):
-    """Calculate average grade from scores"""
+    """Calculate the final grade from extracted scores."""
     if not scores_dict:
         return None
-    total = sum(scores_dict.values())
-    avg = total / len(scores_dict)
-    
+    avg = sum(scores_dict.values()) / len(scores_dict)
+
     if avg >= 90:
         grade = "A"
     elif avg >= 80:
@@ -94,109 +99,105 @@ def calculate_grade(scores_dict):
         grade = "D"
     else:
         grade = "F"
-    
+
     return grade, avg
 
+
 def detect_intent(user_input):
-    """
-    FIXED: Uses the output of the extraction function to reliably determine score intent.
-    """
-    input_lower = user_input.lower()
-    
-    # 1. Check for Scores (MOST RELIABLE CHECK)
-    # If the score extraction function returns a non-empty dictionary, the user is providing scores.
+    """Detect user intent based on keywords and score patterns."""
+    text = user_input.lower()
+
+    # Priority: score detection first
     if extract_scores_from_text(user_input):
         return "provide_scores"
-        
-    # 2. Check for other explicit intents
-    if any(word in input_lower for word in ["hello", "hi", "hey"]):
+
+    if any(word in text for word in ["hello", "hi", "hey"]):
         return "greeting"
-    elif "predict" in input_lower and "grade" in input_lower:
+
+    if "predict" in text and "grade" in text:
         return "predict"
-    elif any(word in input_lower for word in ["help", "how", "work"]):
+
+    if any(word in text for word in ["help", "how", "what can you do"]):
         return "help"
-    elif any(word in input_lower for word in ["bye", "exit", "quit"]):
+
+    if any(word in text for word in ["bye", "exit", "quit"]):
         return "exit"
-        
-    # 3. Default fallback
+
     return "fallback"
 
-def generate_fallback_response(intent, user_input):
-    """Rule-based system to handle chat responses"""
-    if intent == "greeting":
-        return "Hello! I'm your Student Grade Predictor chatbot. I can help predict grades based on your scores. Just share them like 'math: 85' or ask for a prediction!"
+
+def generate_response(intent, user_input):
+    """Rule–based responses according to detected intent."""
     
-    # NOTE: The 'provide_scores' intent is now handled RELIABLY.
-    elif intent == "provide_scores":
-        scores = extract_scores_from_text(user_input)
-        
-        if scores:
-            st.session_state.scores.update(scores)
-            score_list = ", ".join([f"{k.capitalize()}: {v}" for k, v in scores.items()])
-            return f"Thanks! I've noted your scores: {score_list}. Say 'predict my grade' to get a prediction."
-        else:
-            return "Please provide a subject and score in the format 'Subject: Score', like 'math: 85'."
-            
-    elif intent == "predict":
+    if intent == "greeting":
+        return (
+            "Hello! I'm your Student Grade Predictor chatbot. "
+            "Share scores like 'math: 85 science: 90' and I'll predict your grade!"
+        )
+
+    if intent == "provide_scores":
+        new_scores = extract_scores_from_text(user_input)
+        st.session_state.scores.update(new_scores)
+        formatted = ", ".join([f"{k.capitalize()}: {v}" for k, v in new_scores.items()])
+        return f"Got it! I've recorded your scores: {formatted}. Say 'predict my grade' when you're ready."
+
+    if intent == "predict":
         if st.session_state.scores:
             grade, avg = calculate_grade(st.session_state.scores)
-            return f"Based on your scores (average: {avg:.1f}%), your predicted grade is {grade}. Keep up the great work!"
-        else:
-            return "I don't have any scores yet. Please provide some first, like 'math: 85', and then ask to predict your grade."
-            
-    elif intent == "help":
-        return "I'm a chatbot that predicts grades from scores you provide. Examples: 'math: 85 science: 90' then 'predict my grade'."
-        
-    elif intent == "exit":
-        return "Goodbye! Thanks for chatting. Have a great day!"
-        
-    else:
-        return "Sorry, I didn't understand that. Try saying 'hello', providing scores like 'math: 85', or asking for help!"
+            return f"Your predicted grade is **{grade}** with an average of **{avg:.1f}%**. Keep going!"
+        return "You haven't given me any scores yet. Provide something like 'math: 85'."
+
+    if intent == "help":
+        return (
+            "I predict grades based on the scores you give me. "
+            "Try: 'math: 80 english: 90', then say 'predict my grade'."
+        )
+
+    if intent == "exit":
+        return "Goodbye! Come back any time."
+
+    return (
+        "Hmm, I didn't understand that. You can give me scores like 'biology: 78', "
+        "ask for 'predict my grade', or say 'help'!"
+    )
 
 
-user_input = st.chat_input("Ask me anything on grade prediction:")
+# ---------------------------------------------------
+# CHAT INPUT
+# ---------------------------------------------------
+user_input = st.chat_input("Ask me anything about your grades:")
+
 if user_input:
-    
     st.session_state.history.append({"role": "user", "content": user_input})
-    
+
     with st.chat_message("user"):
         st.write(user_input)
-    
-    # Logic is simplified to always use the rule-based system
+
     intent = detect_intent(user_input)
-    response = generate_fallback_response(intent, user_input)
-    
+    response = generate_response(intent, user_input)
+
     st.session_state.history.append({"role": "assistant", "content": response})
-    
+
     with st.chat_message("assistant"):
         st.write(response)
-    
+
     st.rerun()
 
+# ---------------------------------------------------
+# SIDEBAR SCORE SUMMARY
+# ---------------------------------------------------
 if st.session_state.scores:
     st.sidebar.divider()
     st.sidebar.header("📊 Current Scores")
+
     for subject, score in st.session_state.scores.items():
         st.sidebar.write(f"**{subject.capitalize()}**: {score}")
-    
+
     grade_info = calculate_grade(st.session_state.scores)
     if grade_info:
         grade, avg = grade_info
         st.sidebar.metric("Predicted Grade", grade, f"Average: {avg:.1f}%")
-    
-   
-    
-    
-    
 
-    
-    
-    
-
-
-
-   
-           
             
    
             
